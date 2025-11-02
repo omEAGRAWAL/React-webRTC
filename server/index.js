@@ -1,14 +1,21 @@
+const express = require("express");
+const { createServer } = require("http");
 const { Server } = require("socket.io");
+const path = require("path");
 
-const io = new Server(8000, {
-  cors: true,
+const app = express();
+const server = createServer(app);
+
+const io = new Server(server, {
+  cors: { origin: "*" },
 });
 
 const emailToSocketIdMap = new Map();
 const socketidToEmailMap = new Map();
 
 io.on("connection", (socket) => {
-  console.log(`Socket Connected`, socket.id);
+  console.log("Socket connected:", socket.id);
+
   socket.on("room:join", (data) => {
     const { email, room } = data;
     emailToSocketIdMap.set(email, socket.id);
@@ -36,3 +43,15 @@ io.on("connection", (socket) => {
     io.to(to).emit("peer:nego:final", { from: socket.id, ans });
   });
 });
+
+// ---------------- Serve Frontend ----------------
+// ---------------- Serve Frontend ----------------
+const clientBuildPath = path.join(__dirname, "..", "client", "build");
+app.use(express.static(clientBuildPath));
+
+app.get("*", (req, res) => {
+  res.sendFile(path.join(clientBuildPath, "index.html"));
+});
+
+const PORT = process.env.PORT || 8000;
+server.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));
